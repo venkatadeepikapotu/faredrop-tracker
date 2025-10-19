@@ -1,0 +1,117 @@
+# ==========================================
+# Environment Variables & Secrets
+# ==========================================
+.env
+.env.local
+.env*.local
+infrastructure/.env
+frontend/.env.local
+*.pem
+*.key
+credentials
+config
+
+# ==========================================
+# Node.js
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ==========================================
+# AWS CDK
+# ==========================================
+infrastructure/cdk.out/
+infrastructure/*.js
+infrastructure/*.d.ts
+infrastructure/tsconfig.tsbuildinfo
+cdk.context.json
+
+# ==========================================
+# Next.js Frontend
+# ==========================================
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel
+frontend/.turbo
+
+# ==========================================
+# Lambda Functions
+# ==========================================
+lambda/**/node_modules/
+lambda/**/*.js
+lambda/**/*.d.ts
+lambda/**/*.js.map
+
+# ==========================================
+# TypeScript
+# ==========================================
+*.tsbuildinfo
+dist/
+build/
+
+# ==========================================
+# Testing
+# ==========================================
+coverage/
+*.lcov
+.nyc_output/
+
+# ==========================================
+# IDE & Editors
+# ==========================================
+.vscode/
+.history/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==========================================
+# Operating System
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Logs
+# ==========================================
+logs/
+*.log
+
+# ==========================================
+# Temporary Files
+# ==========================================
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# ==========================================
+# AWS Credentials (NEVER commit!)
+# ==========================================
+.aws/
+
+# ==========================================
+# Miscellaneous
+# ==========================================
+.prettierignore
+.eslintcache.env
+.env.local
+.env*.local
+frontend/.env.local
+.env
+.env.local
+.env*.local
+frontend/.env.local
