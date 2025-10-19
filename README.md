@@ -2,11 +2,7 @@
 
 A serverless flight price monitoring system built on AWS that tracks flight prices and alerts users when prices drop below their target threshold.
 
-![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
-![Serverless](https://img.shields.io/badge/Serverless-100%25-green)
-
+**Tech Stack:** AWS Cloud | TypeScript | Next.js 14 | 100% Serverless
 ---
 
 ##  Table of Contents
@@ -237,7 +233,7 @@ cd frontend
 npm run dev
 ```
 
-**Open [http://localhost:3000](http://localhost:3000)** 🎉
+**Open [http://localhost:3000](http://localhost:3000)**
 
 ---
 
