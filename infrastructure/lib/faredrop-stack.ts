@@ -11,6 +11,10 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as iam from 'aws-cdk-lib/aws-iam';  // ✅ ADDED
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 export class FareDropStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -107,6 +111,8 @@ export class FareDropStack extends cdk.Stack {
       PRICE_SNAPSHOTS_TABLE: priceSnapshotsTable.tableName,
       AMADEUS_CLIENT_ID: process.env.AMADEUS_CLIENT_ID || '',
       AMADEUS_CLIENT_SECRET: process.env.AMADEUS_CLIENT_SECRET || '',
+      VERIFIED_EMAIL: 'vpotu@ufl.edu',  // ✅ ADDED
+      SES_REGION: 'us-east-1',          // ✅ ADDED
     };
 
     const watchManagement = new NodejsFunction(this, 'WatchManagementFunction', {
@@ -145,6 +151,12 @@ export class FareDropStack extends cdk.Stack {
     priceSnapshotsTable.grantReadData(watchManagement);
     watchesTable.grantReadWriteData(pricePoller);
     priceSnapshotsTable.grantReadWriteData(pricePoller);
+
+    // ✅ ADDED - SES Permissions for Price Poller
+    pricePoller.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+      resources: ['*']
+    }));
 
     // ===========================================
     // API Gateway with CORS + Cognito Authorizer
@@ -222,6 +234,7 @@ export class FareDropStack extends cdk.Stack {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
+    
 
     // ===========================================
     // /watches/{watchId} Resource Methods
@@ -256,8 +269,43 @@ export class FareDropStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // PUT /watches/{watchId} (with auth) - ✅ ADD THIS
+    watchId.addMethod('PUT', watchIntegration, {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     // DELETE /watches/{watchId} (with auth)
     watchId.addMethod('DELETE', watchIntegration, {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // After DELETE method, ADD THIS ENTIRE SECTION:
+
+    // ===========================================
+    // /watches/{watchId}/history Resource
+    // ===========================================
+
+    const history = watchId.addResource('history');
+
+    // OPTIONS /watches/{watchId}/history (no auth)
+    history.addMethod('OPTIONS', optionsMockIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Credentials': true,
+          },
+        },
+      ],
+    });
+
+    // GET /watches/{watchId}/history (with auth)
+    history.addMethod('GET', watchIntegration, {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
@@ -295,5 +343,7 @@ export class FareDropStack extends cdk.Stack {
       value: 'faredrop-auth.auth.us-east-1.amazoncognito.com',
       description: 'Cognito Hosted UI Domain',
     });
+
+    // infrastructure/lib/faredrop-stack.ts
   }
 }

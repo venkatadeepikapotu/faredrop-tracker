@@ -7,7 +7,7 @@ const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  console.log('📥 Request:', event.httpMethod, event.path);
+  console.log('🔥 Request:', event.httpMethod, event.path);
 
   // CORS headers for all responses
   const headers = {
@@ -42,8 +42,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     console.log('✅ Authenticated user:', userId);
 
-    const { httpMethod, pathParameters } = event;
+    const { httpMethod, pathParameters, path } = event;
     const watchId = pathParameters?.watchId;
+
+    // ✅ ADDED - Handle /watches/{watchId}/history
+    if (path.includes('/history')) {
+      if (httpMethod === 'GET' && watchId) {
+        return await getPriceHistory(watchId, headers);
+      }
+    }
 
     switch (httpMethod) {
       case 'GET':
@@ -54,6 +61,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
       case 'POST':
         return await createWatch(userId, event.body, headers);
+      case 'PUT':  // ✅ ADDED - Handle PUT for full updates
+        if (!watchId) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Bad Request', message: 'watchId is required' }),
+          };
+        }
+        return await updateWatch(userId, watchId, event.body, headers);
       case 'PATCH':
         if (!watchId) {
           return {
@@ -240,6 +256,7 @@ async function createWatch(userId: string, body: string | null, headers: Record<
   }
 }
 
+// ✅ UPDATED - Enhanced update function
 async function updateWatch(userId: string, watchId: string, body: string | null, headers: Record<string, string>): Promise<APIGatewayProxyResult> {
   try {
     if (!body) {
@@ -258,14 +275,43 @@ async function updateWatch(userId: string, watchId: string, body: string | null,
       ':updatedAt': new Date().toISOString(),
     };
 
+    // ✅ ADDED - Support for priceThreshold update
     if (request.priceThreshold !== undefined) {
+      if (typeof request.priceThreshold !== 'number' || request.priceThreshold <= 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Invalid priceThreshold - must be a positive number' }),
+        };
+      }
       updateExpressions.push('priceThreshold = :priceThreshold');
       expressionAttributeValues[':priceThreshold'] = request.priceThreshold;
     }
 
+    // ✅ ADDED - Support for departureDate update
+    if (request.departureDate !== undefined) {
+      updateExpressions.push('departureDate = :departureDate');
+      expressionAttributeValues[':departureDate'] = request.departureDate;
+    }
+
+    // ✅ ADDED - Support for returnDate update
+    if (request.returnDate !== undefined) {
+      updateExpressions.push('returnDate = :returnDate');
+      expressionAttributeValues[':returnDate'] = request.returnDate;
+    }
+
+    // Support for isActive toggle (pause/resume)
     if (request.isActive !== undefined) {
       updateExpressions.push('isActive = :isActive');
       expressionAttributeValues[':isActive'] = request.isActive ? 'true' : 'false';
+    }
+
+    if (updateExpressions.length === 1) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No fields to update' }),
+      };
     }
 
     const result = await docClient.send(new UpdateCommand({
@@ -336,6 +382,42 @@ async function deleteWatch(userId: string, watchId: string, headers: Record<stri
       body: JSON.stringify({ 
         error: 'Failed to delete watch',
         message: error.message
+      }),
+    };
+  }
+}
+
+// ✅ ADDED - Price history endpoint
+async function getPriceHistory(watchId: string, headers: Record<string, string>): Promise<APIGatewayProxyResult> {
+  try {
+    console.log('📊 Getting price history for watch:', watchId);
+    
+    const result = await docClient.send(new QueryCommand({
+      TableName: process.env.PRICE_SNAPSHOTS_TABLE!,
+      KeyConditionExpression: 'watchId = :watchId',
+      ExpressionAttributeValues: { ':watchId': watchId },
+      ScanIndexForward: false, // Most recent first
+      Limit: 50, // Last 50 price checks
+    }));
+
+    console.log('✅ Found', result.Items?.length || 0, 'price snapshots');
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        snapshots: result.Items || [],
+        count: result.Items?.length || 0
+      }),
+    };
+  } catch (error) {
+    console.error('❌ Error getting price history:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to retrieve price history',
+        message: (error as Error).message
       }),
     };
   }

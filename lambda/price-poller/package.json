@@ -7,8 +7,9 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.398.0",
-    "@aws-sdk/lib-dynamodb": "^3.398.0"
+    "@aws-sdk/client-dynamodb": "^3.930.0",
+    "@aws-sdk/client-ses": "^3.930.0",
+    "@aws-sdk/lib-dynamodb": "^3.930.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.119",

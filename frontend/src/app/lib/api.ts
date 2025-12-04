@@ -3,10 +3,6 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const USE_MOCK = false;
 
-// console.log('=== API Configuration ===');
-// console.log('API_URL:', API_URL);
-// console.log('========================');
-
 let mockWatches: any[] = [];
 
 async function makeRequest(endpoint: string, options: RequestInit = {}) {
@@ -75,6 +71,18 @@ function mockRequest(endpoint: string, options: RequestInit) {
     return null;
   }
 
+  // ✅ ADD - Mock update
+  if (endpoint.startsWith('/watches/') && options.method === 'PUT') {
+    const watchId = endpoint.split('/')[2];
+    const body = JSON.parse(options.body as string);
+    const index = mockWatches.findIndex(w => w.watchId === watchId);
+    if (index !== -1) {
+      mockWatches[index] = { ...mockWatches[index], ...body, updatedAt: new Date().toISOString() };
+      return mockWatches[index];
+    }
+    return null;
+  }
+
   return { watches: mockWatches };
 }
 
@@ -82,6 +90,7 @@ const api = {
   getWatches: async () => makeRequest('/watches'),
   createWatch: async (data: any) => makeRequest('/watches', { method: 'POST', body: JSON.stringify(data) }),
   deleteWatch: async (watchId: string) => makeRequest(`/watches/${watchId}`, { method: 'DELETE' }),
+  updateWatch: async (watchId: string, data: any) => makeRequest(`/watches/${watchId}`, { method: 'PUT', body: JSON.stringify(data) }),  // ✅ NEW
 };
 
 export default api;
